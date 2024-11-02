@@ -20,23 +20,23 @@ const App: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const defaultQuery = `SELECT
-    titleId,
-    title,
-    primaryTitle,
-    startYear,
-    genres,
-    averageRating,
-    numVotes
-  FROM 'imdb01-11-2024.parquet'
-  WHERE
-    averageRating >= 7.2 AND
-    numVotes > 50000 AND
-    startYear > 2010 AND
-    titleType IN ('movie', 'tvMovie') AND
-    region IS NULL
-  ORDER BY
-    averageRating DESC
-  LIMIT 100;`;
+  titleId,
+  title,
+  primaryTitle,
+  startYear,
+  genres,
+  averageRating,
+  numVotes
+FROM 'imdb01-11-2024.parquet'
+WHERE
+  averageRating >= 7.2 AND
+  numVotes > 50000 AND
+  startYear > 2010 AND
+  titleType IN ('movie', 'tvMovie') AND
+  region IS NULL
+ORDER BY
+  averageRating DESC
+LIMIT 100;`;
 
     // Initialize the query state with the value from the URL or the default query
     const initialQuery = searchParams.get('query') || defaultQuery;
