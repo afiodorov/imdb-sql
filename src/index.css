@@ -18,3 +18,8 @@ td {
 th {
   background-color: #f2f2f2;
 }
+
+button {
+  padding: 0.5rem 1rem;
+  marginTop: 0.5rem;
+}
