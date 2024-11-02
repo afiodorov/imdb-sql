@@ -156,9 +156,11 @@ LIMIT 100;`;
                 <div style={{height: '100%', width: '100%'}}>
                     <DataGrid rows={data} columns={columns} initialState={{
                         pagination: {
-                            paginationModel: {pageSize: 25, page: 0},
+                            paginationModel: {pageSize: 10, page: 0},
                         },
-                    }} />
+                    }}
+                        pageSizeOptions={[10, 25, 50, 100]}
+                    />
                 </div>
             )}
         </div>
