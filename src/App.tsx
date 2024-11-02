@@ -142,12 +142,12 @@ const App: React.FC = () => {
                     placeholder="Type your SQL query here"
                 /> : null}
                 <br />
-                <button type="submit">
-                    Run Query
-                </button>
                 <button type="button" onClick={() => setShowQuery(!showQuery)}>
                     {showQuery ? "Hide Query" : "Show Query"}
                 </button>
+                {showQuery ? <button type="submit">
+                    Run Query
+                </button> : null}
             </form>
 
             {loading ? (
