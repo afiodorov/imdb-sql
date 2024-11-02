@@ -12,7 +12,7 @@ const App: React.FC = () => {
     const {db} = useDuckDB();
     const [data, setData] = useState<QueryResultRow[]>([]);
     const [columns, setColumns] = useState<GridColDef[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
     const [parquetLoaded, setParquetLoaded] = useState<boolean>(false);
     const [showQuery, setShowQuery] = useState<boolean>(false);
 
