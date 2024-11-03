@@ -1,8 +1,14 @@
-import type {Field, RuleType} from 'react-querybuilder';
+import type {Field, FullOption, RuleType} from 'react-querybuilder';
 import {defaultOperators, toFullOption} from 'react-querybuilder';
 import {languages, regions, types} from './options';
 
 export const validator = (r: RuleType) => !!r.value;
+
+interface OperatorOption extends FullOption<string> {
+    name: string;
+}
+
+const operatorOptions = defaultOperators as OperatorOption[];
 
 export const fields = (
     [
@@ -26,14 +32,14 @@ export const fields = (
             values: regions,
             defaultValue: 'NULL',
             defaultOperator: 'null',
-            operators: defaultOperators.filter((op) => op.name === '=' || op.name === 'null'),
+            operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null'),
         },
         {
             name: 'language',
             label: 'Language',
             valueEditorType: 'select',
             values: languages,
-            operators: defaultOperators.filter((op) => op.name === '=' || op.name === 'null'),
+            operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null'),
         },
         {
             name: 'averageRating',
@@ -71,6 +77,6 @@ export const fields = (
             label: 'Type of media',
             valueEditorType: 'select',
             values: types,
-            operators: defaultOperators.filter((op) => op.name === '='),
+            operators: operatorOptions.filter((op) => op.name === '='),
         },] satisfies Field[]
 ).map((o) => toFullOption(o));
