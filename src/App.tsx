@@ -4,6 +4,7 @@ import {DataGrid, GridColDef, GridCellParams} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
 import {defaultQuery} from './sql';
 import {Editor} from './editor';
+import {ImdbLink} from './imdb';
 
 
 interface QueryResultRow {
@@ -72,13 +73,7 @@ const App: React.FC = () => {
 
                 if (field.name === 'titleId') {
                     colDef.renderCell = (params: GridCellParams) => (
-                        <a
-                            href={`https://www.imdb.com/title/${params.value}/`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            {params.value as string}
-                        </a>
+                        <ImdbLink titleId={params.value as string} />
                     );
                 }
 
