@@ -187,7 +187,11 @@ LIMIT 100
                     />
                     <button type="button" onClick={handleQueryRun}>Run</button>
                     <button type="button" onClick={handleBuildQuery}>Build</button>
-                    <button type="button" onClick={() => {setQueryAndStore(defaultQuery); setBuildQueryAndStore(initialBuildQuery)}}>Reset</button>
+                    <button type="button" onClick={() => {
+                        setQueryAndStore(defaultQuery)
+                        setBuildQueryAndStore(initialBuildQuery)
+                        setError("")
+                    }}>Reset</button>
                 </> : null
                 }
 
@@ -200,19 +204,18 @@ LIMIT 100
                 {showQuery ? <QueryBuilder fields={fields} query={buildQuery} onQueryChange={setBuildQueryAndStore} /> : null}
             </div>
 
-            <div className="error">{error ? <p>{error}</p> : null}</div>
 
             <div className="table">
                 {loading ? (
                     <p>Loading...</p>
                 ) : (
-                    <DataGrid rows={data} columns={columns} initialState={{
+                    !error ? (<DataGrid rows={data} columns={columns} initialState={{
                         pagination: {
                             paginationModel: {pageSize: 10, page: 0},
                         },
                     }}
                         pageSizeOptions={[10, 25, 50, 100]}
-                    />
+                    />) : (<p>{error}</p>)
                 )}
             </div>
 

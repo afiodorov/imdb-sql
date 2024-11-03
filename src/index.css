@@ -24,14 +24,14 @@ button {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr 4fr 4fr 2fr 1fr;
+  grid-template-columns: 1fr 5fr 5fr 1fr;
   grid-template-rows:
     10px minmax(min-content, max-content) minmax(min-content, max-content) 10px;
   grid-template-areas:
-    ". h h h ."
-    ". q b e ."
-    ". t t t ."
-    ". f f f .";
+    ". h h ."
+    ". q b ."
+    ". t t ."
+    ". f f .";
 }
 
 .App > .header {
@@ -49,11 +49,6 @@ button {
 .App > .footer {
   grid-area: f;
 }
-
-.App > .error {
-  grid-area: e;
-}
-
 
 .App > .builder {
   grid-area: b;

@@ -32,14 +32,14 @@ export const fields = (
             values: regions,
             defaultValue: 'US',
             defaultOperator: 'null',
-            operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null'),
+            operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null' || op.name === '!=' || op.name === 'notNull'),
         },
         {
             name: 'language',
             label: 'Language',
             valueEditorType: 'select',
             values: languages,
-            operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null'),
+            operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null' || op.name === '!=' || op.name === 'notNull'),
         },
         {
             name: 'averageRating',
