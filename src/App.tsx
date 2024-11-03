@@ -113,7 +113,7 @@ const App: React.FC = () => {
     };
 
     const handleBuildQuery = () => {
-        setQuery(`SELECT * EXCLUDE (region, titleType)
+        setQuery(`SELECT * EXCLUDE (titleType, primaryTitle, language)
 FROM 'imdb01-11-2024.parquet'
 WHERE
 ${formatQuery(buildQuery, {'format': 'sql', parseNumbers: true})}
