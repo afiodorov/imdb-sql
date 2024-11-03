@@ -2,6 +2,6 @@
 
 Query an imdb dataset right inside your browser
 
-Hosted [here](https://dwq7ngtl4198l.cloudfront.net/).
+Hosted [here](https://www.imbd-sql.com/)
 
 ![Example](./preview.sng)
