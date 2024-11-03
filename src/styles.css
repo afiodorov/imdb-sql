@@ -1,0 +1,52 @@
+.svg-font-color svg > path {
+  fill: var(--ifm-font-color-base);
+}
+
+.queryBuilder {
+  min-width: 420px;
+}
+
+.validateQuery .queryBuilder .ruleGroup.queryBuilder-invalid {
+  background-color: rgba(102, 51, 153, 0.4);
+}
+.validateQuery .queryBuilder .ruleGroup.queryBuilder-invalid .ruleGroup-addRule {
+  font-weight: bold !important;
+}
+.validateQuery .queryBuilder .ruleGroup.queryBuilder-invalid > .ruleGroup-header::after {
+  content: "Empty groups are considered invalid. Avoid them by using addRuleToNewGroups.";
+  color: white;
+}
+.validateQuery .queryBuilder .rule.queryBuilder-invalid .rule-value {
+  background-color: rgba(102, 51, 153, 0.4);
+}
+.validateQuery .queryBuilder .rule.queryBuilder-invalid .rule-value::placeholder {
+  color: rgb(71.4, 35.7, 107.1);
+}
+
+html[data-theme="dark"]
+  .validateQuery
+  .queryBuilder
+  .rule.queryBuilder-invalid
+  .rule-value::placeholder {
+  color: rgb(147.9, 94.35, 201.45);
+}
+
+.justifiedLayout .queryBuilder .ruleGroup-addGroup + button.ruleGroup-cloneGroup,
+.justifiedLayout .queryBuilder .ruleGroup-addGroup + button.ruleGroup-lock,
+.justifiedLayout .queryBuilder .ruleGroup-addGroup + button.ruleGroup-remove {
+  margin-left: auto !important;
+}
+.justifiedLayout .queryBuilder .rule-operators + button.rule-cloneRule,
+.justifiedLayout .queryBuilder .rule-operators + button.rule-lock,
+.justifiedLayout .queryBuilder .rule-operators + button.rule-remove,
+.justifiedLayout .queryBuilder .rule-value + button.rule-cloneRule,
+.justifiedLayout .queryBuilder .rule-value + button.rule-lock,
+.justifiedLayout .queryBuilder .rule-value + button.rule-remove,
+.justifiedLayout .queryBuilder .control + button.rule-cloneRule,
+.justifiedLayout .queryBuilder .control + button.rule-lock,
+.justifiedLayout .queryBuilder .control + button.rule-remove,
+.justifiedLayout .queryBuilder .chakra-select__wrapper + button.rule-cloneRule,
+.justifiedLayout .queryBuilder .chakra-select__wrapper + button.rule-lock,
+.justifiedLayout .queryBuilder .chakra-select__wrapper + button.rule-remove {
+  margin-left: auto !important;
+}

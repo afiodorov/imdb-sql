@@ -6,6 +6,11 @@ import {defaultQuery} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
 
+import {QueryBuilder, formatQuery, RuleGroupType} from 'react-querybuilder';
+import {fields} from './fields';
+import 'react-querybuilder/dist/query-builder.scss';
+import './styles.css';
+
 
 interface QueryResultRow {
     id: number; // DataGrid requires an 'id' field
@@ -26,6 +31,9 @@ const App: React.FC = () => {
     const initialQuery = searchParams.get('query') || defaultQuery;
     const [query, setQuery] = useState<string>(initialQuery)
     const [querySelection, setQuerySelection] = useState<string>("");
+
+    const initialBuildQuery: RuleGroupType = {combinator: 'and', rules: []};
+    const [buildQuery, setBuildQuery] = useState<RuleGroupType>(initialBuildQuery)
 
     useEffect(() => {
         if (!db || parquetLoaded) return;
@@ -104,6 +112,17 @@ const App: React.FC = () => {
         setSearchParams({query: queryToRun});
     };
 
+    const handleBuildQuery = () => {
+        setQuery(`SELECT * EXCLUDE (region, titleType)
+FROM 'imdb01-11-2024.parquet'
+WHERE
+${formatQuery(buildQuery, {'format': 'sql', parseNumbers: true})}
+ORDER BY
+  averageRating DESC
+LIMIT 100
+`)
+    }
+
     return (
         <div className="App">
             <div className="header"></div>
@@ -115,12 +134,19 @@ const App: React.FC = () => {
                     setSelection={setQuerySelection}
                 /> : null}
                 <br />
-                <button type="button" onClick={() => setShowQuery(!showQuery)}>
-                    {showQuery ? "Hide Query" : "Show Query"}
-                </button>
                 {showQuery ? <button type="button" onClick={handleQueryRun}>
                     Run Query
                 </button> : null}
+                {showQuery ? <button type="button" onClick={handleBuildQuery}>
+                    Build Query
+                </button> : null}
+                <button type="button" onClick={() => setShowQuery(!showQuery)}>
+                    {showQuery ? "Hide Query" : "Show Query"}
+                </button>
+            </div>
+
+            <div className="builder">
+                {showQuery ? <QueryBuilder fields={fields} query={buildQuery} onQueryChange={setBuildQuery} /> : null}
             </div>
 
             <div className="error">{error ? <p>{error}</p> : null}</div>
