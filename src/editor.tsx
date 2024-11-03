@@ -30,7 +30,7 @@ export const Editor: React.FC<EditorProps> = ({value, onChange, setSelection}) =
             useWorker: false,
         }}
         width="100%"
-        height="350px"
+        height="200px"
         readOnly={false}
     />
 }

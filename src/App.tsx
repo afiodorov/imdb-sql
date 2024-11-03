@@ -185,23 +185,30 @@ LIMIT 100
                         onChange={setQueryAndStore}
                         setSelection={setQuerySelection}
                     />
-                    <button type="button" onClick={handleQueryRun}>Run</button>
-                    <button type="button" onClick={handleBuildQuery}>Build</button>
-                    <button type="button" onClick={() => {
-                        setQueryAndStore(defaultQuery)
-                        setBuildQueryAndStore(initialBuildQuery)
-                        setError("")
-                    }}>Reset</button>
                 </> : null
                 }
 
-                <button type="button" onClick={() => setShowQuery(!showQuery)}>
-                    {showQuery ? "Hide" : "Show Query"}
-                </button>
             </div>
 
             <div className="builder">
                 {showQuery ? <QueryBuilder fields={fields} query={buildQuery} onQueryChange={setBuildQueryAndStore} /> : null}
+            </div>
+
+            <div className="actions">
+                <div class="button-wrapper">
+                    {showQuery ? <>
+                        <button type="button" onClick={handleQueryRun}>Run</button>
+                        <button type="button" onClick={handleBuildQuery}>Build</button>
+                        <button type="button" onClick={() => {
+                            setQueryAndStore(defaultQuery)
+                            setBuildQueryAndStore(initialBuildQuery)
+                            setError("")
+                        }}>Reset</button>
+                    </> : null}
+                    <button type="button" onClick={() => setShowQuery(!showQuery)}>
+                        {showQuery ? "Hide" : "Show Query"}
+                    </button>
+                </div>
             </div>
 
 

@@ -14,11 +14,6 @@ th {
   background-color: #f2f2f2;
 }
 
-button {
-  padding: 0.5rem 1rem;
-  marginTop: 0.5rem;
-}
-
 
 .App {
   width: 100%;
@@ -26,10 +21,15 @@ button {
   display: grid;
   grid-template-columns: minmax(10px, 1fr) 20fr 20fr minmax(10px, 1fr);
   grid-template-rows:
-    10px minmax(min-content, max-content) minmax(min-content, max-content) 10px;
+    10px
+    minmax(min-content, max-content)
+    50px
+    minmax(min-content, max-content)
+    10px;
   grid-template-areas:
     ". h h ."
     ". q b ."
+    ". a a ."
     ". t t ."
     ". f f .";
 }
@@ -52,4 +52,38 @@ button {
 
 .App > .builder {
   grid-area: b;
+}
+
+.App > .actions {
+  grid-area: a;
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+
+@media screen and (max-width: 850px) {
+  .App {
+    grid-template-columns: 10px 1fr 10px;
+    grid-template-rows:
+      10px
+      minmax(min-content, max-content)
+      minmax(min-content, max-content)
+      50px
+      minmax(min-content, max-content)
+      20px;
+    grid-template-areas:
+      ". h ."
+      ". q ."
+      ". b ."
+      ". a ."
+      ". t ."
+      ". f ."
+  }
+}
+
+.button-wrapper {
+  display: flex;
+  gap: 10px; /* Space between buttons */
+  padding: 10px 0; /* Vertical padding for space above and below buttons */
 }
