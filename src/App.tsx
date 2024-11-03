@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
-import {DataGrid, GridColDef, GridCellParams} from '@mui/x-data-grid';
+import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
 import {defaultQuery} from './sql';
 import {Editor} from './editor';
@@ -195,7 +195,7 @@ LIMIT 100
             </div>
 
             <div className="actions">
-                <div class="button-wrapper">
+                <div className="button-wrapper">
                     {showQuery ? <>
                         <button type="button" onClick={handleQueryRun}>Run</button>
                         <button type="button" onClick={handleBuildQuery}>Build</button>
@@ -220,8 +220,10 @@ LIMIT 100
                         pagination: {
                             paginationModel: {pageSize: 10, page: 0},
                         },
+                        density: 'compact',
                     }}
                         pageSizeOptions={[10, 25, 50, 100]}
+                        slots={{toolbar: GridToolbar}}
                     />) : (<p>{error}</p>)
                 )}
             </div>
