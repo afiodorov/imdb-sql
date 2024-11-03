@@ -113,10 +113,14 @@ const App: React.FC = () => {
     };
 
     const handleBuildQuery = () => {
+        const q = formatQuery(buildQuery, {format: 'sql', parseNumbers: true})
+            .replaceAll(" and ", " and\n")
+            .replaceAll(" or ", " or\n");
+
         setQuery(`SELECT * EXCLUDE (titleType, primaryTitle, language)
 FROM 'imdb01-11-2024.parquet'
 WHERE
-${formatQuery(buildQuery, {'format': 'sql', parseNumbers: true})}
+${q}
 ORDER BY
   averageRating DESC
 LIMIT 100
