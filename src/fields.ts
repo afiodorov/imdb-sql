@@ -30,7 +30,7 @@ export const fields = (
             label: 'Region',
             valueEditorType: 'select',
             values: regions,
-            defaultValue: 'NULL',
+            defaultValue: 'US',
             defaultOperator: 'null',
             operators: operatorOptions.filter((op) => op.name === '=' || op.name === 'null'),
         },

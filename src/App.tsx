@@ -8,9 +8,9 @@ import {ImdbLink} from './imdb';
 import {storeParquetInIndexedDB, getParquetFileFromIndexedDB} from './cache';
 import {QueryBuilder, formatQuery, RuleGroupType} from 'react-querybuilder';
 import {fields} from './fields';
-import 'react-querybuilder/dist/query-builder.scss';
+import {useLocalStorageSetter} from "./storage";
 import './styles.css';
-
+import 'react-querybuilder/dist/query-builder.scss';
 
 interface QueryResultRow {
     id: number; // DataGrid requires an 'id' field
@@ -29,11 +29,42 @@ const App: React.FC = () => {
 
     // Initialize the query state with the value from the URL or the default query
     const initialQuery = searchParams.get('query') || defaultQuery;
-    const [query, setQuery] = useState<string>(initialQuery)
+    const [query, setQuery] = useState<string>(localStorage.getItem('query') || initialQuery)
     const [querySelection, setQuerySelection] = useState<string>("");
 
-    const initialBuildQuery: RuleGroupType = {combinator: 'and', rules: []};
-    const [buildQuery, setBuildQuery] = useState<RuleGroupType>(initialBuildQuery)
+    const initialBuildQuery: RuleGroupType = {
+        "combinator": "and",
+        "rules": [
+            {
+                "field": "region",
+                "operator": "null",
+                "valueSource": "value",
+                "value": "US"
+            },
+            {
+                "field": "numVotes",
+                "operator": ">=",
+                "valueSource": "value",
+                "value": "100000"
+            },
+            {
+                "field": "titleType",
+                "operator": "=",
+                "valueSource": "value",
+                "value": "movie"
+            },
+            {
+                "field": "startYear",
+                "operator": ">=",
+                "valueSource": "value",
+                "value": "2015"
+            }
+        ]
+    }
+    const [buildQuery, setBuildQuery] = useState<RuleGroupType>(JSON.parse(localStorage.getItem('buildQuery') || 'null') || initialBuildQuery)
+
+    const setQueryAndStore = useLocalStorageSetter(setQuery, 'query', false)
+    const setBuildQueryAndStore = useLocalStorageSetter(setBuildQuery, 'buildQuery', true)
 
     useEffect(() => {
         if (!db || parquetLoaded) return;
@@ -132,7 +163,7 @@ const App: React.FC = () => {
             .replaceAll(" and ", " and\n")
             .replaceAll(" or ", " or\n");
 
-        setQuery(`SELECT * EXCLUDE (titleType, primaryTitle, language)
+        setQueryAndStore(`SELECT * EXCLUDE (titleType, primaryTitle, language)
 FROM 'imdb01-11-2024.parquet'
 WHERE
 ${q}
@@ -147,25 +178,26 @@ LIMIT 100
             <div className="header"></div>
 
             <div className="query">
-                {showQuery ? <Editor
-                    value={query}
-                    onChange={setQuery}
-                    setSelection={setQuerySelection}
-                /> : null}
-                <br />
-                {showQuery ? <button type="button" onClick={handleQueryRun}>
-                    Run Query
-                </button> : null}
-                {showQuery ? <button type="button" onClick={handleBuildQuery}>
-                    Build Query
-                </button> : null}
+                {showQuery ? <>
+
+                    <Editor
+                        value={query}
+                        onChange={setQuery}
+                        setSelection={setQuerySelection}
+                    />
+                    <button type="button" onClick={handleQueryRun}>Run</button>
+                    <button type="button" onClick={handleBuildQuery}>Build</button>
+                    <button type="button" onClick={() => {setQueryAndStore(defaultQuery); setBuildQueryAndStore(initialBuildQuery)}}>Reset</button>
+                </> : null
+                }
+
                 <button type="button" onClick={() => setShowQuery(!showQuery)}>
-                    {showQuery ? "Hide Query" : "Show Query"}
+                    {showQuery ? "Hide" : "Show Query"}
                 </button>
             </div>
 
             <div className="builder">
-                {showQuery ? <QueryBuilder fields={fields} query={buildQuery} onQueryChange={setBuildQuery} /> : null}
+                {showQuery ? <QueryBuilder fields={fields} query={buildQuery} onQueryChange={setBuildQueryAndStore} /> : null}
             </div>
 
             <div className="error">{error ? <p>{error}</p> : null}</div>
@@ -185,7 +217,7 @@ LIMIT 100
             </div>
 
             <div className="footer"></div>
-        </div>
+        </div >
     );
 };
 
