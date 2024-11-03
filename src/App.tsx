@@ -9,6 +9,7 @@ import {storeParquetInIndexedDB, getParquetFileFromIndexedDB} from './cache';
 import {QueryBuilder, formatQuery, RuleGroupType} from 'react-querybuilder';
 import {fields} from './fields';
 import {useLocalStorageSetter} from "./storage";
+import {customRuleProcessor} from './custom_sql_rule_processor';
 import './styles.css';
 import 'react-querybuilder/dist/query-builder.scss';
 
@@ -159,7 +160,12 @@ const App: React.FC = () => {
     };
 
     const handleBuildQuery = () => {
-        const q = formatQuery(buildQuery, {format: 'sql', parseNumbers: true})
+        const q = formatQuery(buildQuery,
+            {
+                format: 'sql',
+                parseNumbers: true,
+                ruleProcessor: customRuleProcessor
+            })
             .replaceAll(" and ", " and\n")
             .replaceAll(" or ", " or\n");
 
