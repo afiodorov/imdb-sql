@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
@@ -16,9 +16,8 @@ const App: React.FC = () => {
     const [parquetLoaded, setParquetLoaded] = useState<boolean>(false);
     const [showQuery, setShowQuery] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
-
-
     const [searchParams, setSearchParams] = useSearchParams();
+    const queryTextAreaRef = useRef<HTMLTextAreaElement>(null);
 
     const defaultQuery = `SELECT
   titleId,
@@ -123,10 +122,22 @@ LIMIT 100;`;
         setQuery(event.target.value);
     };
 
-    const handleQuerySubmit = (event: React.FormEvent) => {
-        event.preventDefault();
-        fetchData(query);
-        setSearchParams({query})
+
+    const handleQueryRun = () => {
+        const textarea = queryTextAreaRef.current;
+        let selectedText = "";
+
+        if (textarea) {
+            const {selectionStart, selectionEnd, value} = textarea;
+            if (selectionStart !== selectionEnd) {
+                selectedText = value.substring(selectionStart, selectionEnd);
+            }
+        }
+
+        const queryToRun = selectedText || query;
+
+        fetchData(queryToRun);
+        setSearchParams({query: queryToRun});
     };
 
     return (
@@ -134,27 +145,26 @@ LIMIT 100;`;
             <div className="header"></div>
 
             <div className="query">
-                <form onSubmit={handleQuerySubmit} style={{marginBottom: '1rem'}}>
-                    {showQuery ? <textarea
-                        value={query}
-                        onChange={handleQueryChange}
-                        style={{
-                            width: '80%',
-                            height: '350px',
-                            padding: '0.5rem',
-                            fontSize: '1rem',
-                            fontFamily: 'monospace',
-                        }}
-                        placeholder="Type your SQL query here"
-                    /> : null}
-                    <br />
-                    <button type="button" onClick={() => setShowQuery(!showQuery)}>
-                        {showQuery ? "Hide Query" : "Show Query"}
-                    </button>
-                    {showQuery ? <button type="submit">
-                        Run Query
-                    </button> : null}
-                </form>
+                {showQuery ? <textarea
+                    ref={queryTextAreaRef}
+                    value={query}
+                    onChange={handleQueryChange}
+                    style={{
+                        width: '80%',
+                        height: '350px',
+                        padding: '0.5rem',
+                        fontSize: '1rem',
+                        fontFamily: 'monospace',
+                    }}
+                    placeholder="Type your SQL query here"
+                /> : null}
+                <br />
+                <button type="button" onClick={() => setShowQuery(!showQuery)}>
+                    {showQuery ? "Hide Query" : "Show Query"}
+                </button>
+                {showQuery ? <button type="button" onClick={handleQueryRun}>
+                    Run Query
+                </button> : null}
             </div>
 
             <div className="error">{error ? <p>{error}</p> : null}</div>
