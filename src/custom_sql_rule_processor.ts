@@ -13,17 +13,17 @@ export const customRuleProcessor: RuleProcessor = (rule, options) => {
     if (caseInsensitiveOperators.includes(rule.operator)) {
         switch (rule.operator) {
             case 'contains':
-                return `UPPER(${rule.field}) LIKE UPPER('%${rule.value}%')`;
+                return `upper(${rule.field}) like upper('%${rule.value}%')`;
             case 'beginsWith':
-                return `UPPER(${rule.field}) LIKE UPPER('${rule.value}%')`;
+                return `upper(${rule.field}) like upper('${rule.value}%')`;
             case 'endsWith':
-                return `UPPER(${rule.field}) LIKE UPPER('%${rule.value}')`;
+                return `upper(${rule.field}) like upper('%${rule.value}')`;
             case 'doesNotContain':
-                return `UPPER(${rule.field}) NOT LIKE UPPER('%${rule.value}%')`;
+                return `upper(${rule.field}) not like upper('%${rule.value}%')`;
             case 'doesNotBeginWith':
-                return `UPPER(${rule.field}) NOT LIKE UPPER('${rule.value}%')`;
+                return `upper(${rule.field}) not like upper('${rule.value}%')`;
             case 'doesNotEndWith':
-                return `UPPER(${rule.field}) NOT LIKE UPPER('%${rule.value}')`;
+                return `upper(${rule.field}) not like upper('%${rule.value}')`;
         }
     }
     return defaultRuleProcessorSQL(rule, options);
