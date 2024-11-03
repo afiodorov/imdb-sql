@@ -2,6 +2,10 @@ import React, {useEffect, useState, useRef} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
+import AceEditor from "react-ace";
+
+import "ace-builds/src-noconflict/theme-github";
+import "ace-builds/src-noconflict/mode-sql";
 
 interface QueryResultRow {
     id: number; // DataGrid requires an 'id' field
@@ -17,7 +21,6 @@ const App: React.FC = () => {
     const [showQuery, setShowQuery] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
     const [searchParams, setSearchParams] = useSearchParams();
-    const queryTextAreaRef = useRef<HTMLTextAreaElement>(null);
 
     const defaultQuery = `SELECT
   titleId,
@@ -41,6 +44,8 @@ LIMIT 100;`;
     // Initialize the query state with the value from the URL or the default query
     const initialQuery = searchParams.get('query') || defaultQuery;
     const [query, setQuery] = useState<string>(initialQuery)
+    const [querySelection, setQuerySelection] = useState<string>("");
+    const editorRef = useRef<AceEditor | null>(null);
 
     useEffect(() => {
         if (!db || parquetLoaded) return;
@@ -118,23 +123,8 @@ LIMIT 100;`;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [db, parquetLoaded]);
 
-    const handleQueryChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setQuery(event.target.value);
-    };
-
-
     const handleQueryRun = () => {
-        const textarea = queryTextAreaRef.current;
-        let selectedText = "";
-
-        if (textarea) {
-            const {selectionStart, selectionEnd, value} = textarea;
-            if (selectionStart !== selectionEnd) {
-                selectedText = value.substring(selectionStart, selectionEnd);
-            }
-        }
-
-        const queryToRun = selectedText || query;
+        const queryToRun = querySelection || query;
 
         fetchData(queryToRun);
         setSearchParams({query: queryToRun});
@@ -145,18 +135,26 @@ LIMIT 100;`;
             <div className="header"></div>
 
             <div className="query">
-                {showQuery ? <textarea
-                    ref={queryTextAreaRef}
+                {showQuery ? <AceEditor
+                    name="sql"
+                    ref={editorRef}
+                    mode="sql"
+                    theme="github"
                     value={query}
-                    onChange={handleQueryChange}
-                    style={{
-                        width: '80%',
-                        height: '350px',
-                        padding: '0.5rem',
-                        fontSize: '1rem',
-                        fontFamily: 'monospace',
+                    onChange={setQuery}
+                    onSelectionChange={() => setQuerySelection(editorRef.current?.editor.getSelectedText() || "")}
+                    fontSize={14}
+                    showPrintMargin={true}
+                    showGutter={false}
+                    highlightActiveLine={true}
+                    setOptions={{
+                        showLineNumbers: false,
+                        tabSize: 2,
+                        useWorker: false,
                     }}
-                    placeholder="Type your SQL query here"
+                    width="100%"
+                    height="350px"
+                    readOnly={false}
                 /> : null}
                 <br />
                 <button type="button" onClick={() => setShowQuery(!showQuery)}>
