@@ -29,8 +29,7 @@ const App: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Initialize the query state with the value from the URL or the default query
-    const initialQuery = searchParams.get('query') || defaultQuery;
-    const [query, setQuery] = useState<string>(localStorage.getItem('query') || initialQuery)
+    const [query, setQuery] = useState<string>(searchParams.get('query') || localStorage.getItem('query') || defaultQuery)
     const [querySelection, setQuerySelection] = useState<string>("");
 
     const initialBuildQuery: RuleGroupType = {
