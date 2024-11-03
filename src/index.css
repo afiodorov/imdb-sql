@@ -1,6 +1,35 @@
 .App {
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 8fr 2fr 1fr;
+  grid-template-rows:
+    10px minmax(min-content, max-content) minmax(min-content, max-content) 10px;
+  grid-template-areas:
+    ". h h ."
+    ". q e ."
+    ". t t ."
+    ". f f .";
+}
+
+.App > .header {
+  grid-area: h;
+}
+
+.App > .query {
+  grid-area: q;
+}
+
+.App > .table {
+  grid-area: t;
+}
+
+.App > .footer {
+  grid-area: f;
+}
+
+.App > .error {
+  grid-area: e;
 }
 
 table {

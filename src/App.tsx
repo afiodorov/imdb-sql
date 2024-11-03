@@ -15,6 +15,7 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [parquetLoaded, setParquetLoaded] = useState<boolean>(false);
     const [showQuery, setShowQuery] = useState<boolean>(false);
+    const [error, setError] = useState<string>("");
 
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -102,8 +103,10 @@ LIMIT 100;`;
             });
             setData(rows);
             setColumns(columnDefs);
+            setError("");
         } catch (error) {
             console.error('Error querying Parquet file:', error);
+            setError(`${error}`)
         } finally {
             setLoading(false);
         }
@@ -127,33 +130,39 @@ LIMIT 100;`;
     };
 
     return (
-        <div style={{padding: '1rem'}}>
-            <form onSubmit={handleQuerySubmit} style={{marginBottom: '1rem'}}>
-                {showQuery ? <textarea
-                    value={query}
-                    onChange={handleQueryChange}
-                    style={{
-                        width: '80%',
-                        height: '350px',
-                        padding: '0.5rem',
-                        fontSize: '1rem',
-                        fontFamily: 'monospace',
-                    }}
-                    placeholder="Type your SQL query here"
-                /> : null}
-                <br />
-                <button type="button" onClick={() => setShowQuery(!showQuery)}>
-                    {showQuery ? "Hide Query" : "Show Query"}
-                </button>
-                {showQuery ? <button type="submit">
-                    Run Query
-                </button> : null}
-            </form>
+        <div className="App">
+            <div className="header"></div>
 
-            {loading ? (
-                <p>Loading...</p>
-            ) : (
-                <div style={{height: '100%', width: '100%'}}>
+            <div className="query">
+                <form onSubmit={handleQuerySubmit} style={{marginBottom: '1rem'}}>
+                    {showQuery ? <textarea
+                        value={query}
+                        onChange={handleQueryChange}
+                        style={{
+                            width: '80%',
+                            height: '350px',
+                            padding: '0.5rem',
+                            fontSize: '1rem',
+                            fontFamily: 'monospace',
+                        }}
+                        placeholder="Type your SQL query here"
+                    /> : null}
+                    <br />
+                    <button type="button" onClick={() => setShowQuery(!showQuery)}>
+                        {showQuery ? "Hide Query" : "Show Query"}
+                    </button>
+                    {showQuery ? <button type="submit">
+                        Run Query
+                    </button> : null}
+                </form>
+            </div>
+
+            <div className="error">{error ? <p>{error}</p> : null}</div>
+
+            <div className="table">
+                {loading ? (
+                    <p>Loading...</p>
+                ) : (
                     <DataGrid rows={data} columns={columns} initialState={{
                         pagination: {
                             paginationModel: {pageSize: 10, page: 0},
@@ -161,8 +170,10 @@ LIMIT 100;`;
                     }}
                         pageSizeOptions={[10, 25, 50, 100]}
                     />
-                </div>
-            )}
+                )}
+            </div>
+
+            <div className="footer"></div>
         </div>
     );
 };
