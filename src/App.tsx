@@ -182,7 +182,7 @@ LIMIT 100
 
                     <Editor
                         value={query}
-                        onChange={setQuery}
+                        onChange={setQueryAndStore}
                         setSelection={setQuerySelection}
                     />
                     <button type="button" onClick={handleQueryRun}>Run</button>
