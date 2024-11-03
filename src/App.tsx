@@ -5,7 +5,7 @@ import {useSearchParams} from 'react-router-dom';
 import {defaultQuery} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
-
+import {storeParquetInIndexedDB, getParquetFileFromIndexedDB} from './cache';
 import {QueryBuilder, formatQuery, RuleGroupType} from 'react-querybuilder';
 import {fields} from './fields';
 import 'react-querybuilder/dist/query-builder.scss';
@@ -40,15 +40,29 @@ const App: React.FC = () => {
 
         const loadParquetFile = async () => {
             try {
+                const parquetBlob: Blob = await getParquetFileFromIndexedDB('imdb01-11-2024.parquet');
+                const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
+                if (arrayBuffer.byteLength > 1000) {
+                    await db.registerFileBuffer('imdb01-11-2024.parquet', new Uint8Array(arrayBuffer));
+                    setParquetLoaded(true);
+                    return
+                }
+            } catch (error) {
+                // pass
+            }
+
+            try {
                 const parquetUrl = '/imdb01-11-2024.parquet';
                 const response = await fetch(parquetUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
                 }
                 const parquetArrayBuffer = await response.arrayBuffer();
-                const parquetUint8Array = new Uint8Array(parquetArrayBuffer);
-                await db.registerFileBuffer('imdb01-11-2024.parquet', parquetUint8Array);
-                setParquetLoaded(true); // Update the state to indicate the file is loaded
+                const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
+                await storeParquetInIndexedDB('imdb01-11-2024.parquet', parquetBlob);
+
+                await db.registerFileBuffer('imdb01-11-2024.parquet', new Uint8Array(parquetArrayBuffer));
+                setParquetLoaded(true);
             } catch (error) {
                 console.error('Error loading Parquet file:', error);
             }
@@ -56,6 +70,7 @@ const App: React.FC = () => {
 
         loadParquetFile();
     }, [db, parquetLoaded]);
+
 
     const fetchData = async (customQuery: string) => {
         if (!db || !parquetLoaded) return;

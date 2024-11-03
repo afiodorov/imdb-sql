@@ -1,18 +1,10 @@
-export const defaultQuery = `SELECT
-  titleId,
-  title,
-  primaryTitle,
-  startYear,
-  genres,
-  averageRating,
-  numVotes
+export const defaultQuery = `SELECT * EXCLUDE (titleType, primaryTitle, language)
 FROM 'imdb01-11-2024.parquet'
 WHERE
-  averageRating >= 7.2 AND
-  numVotes > 50000 AND
-  startYear > 2010 AND
-  titleType IN ('movie', 'tvMovie') AND
-  region IS NULL
+(region is null and
+numVotes >= 100000 and
+titleType = 'movie' and
+startYear >= 2015)
 ORDER BY
   averageRating DESC
-LIMIT 100;`
+LIMIT 100`;
