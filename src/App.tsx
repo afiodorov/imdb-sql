@@ -180,7 +180,9 @@ LIMIT 100
 
     return (
         <div className="App">
-            <div className="header"></div>
+            <div className="header">
+                <span className='title'>IMDb SQL: Best Movie Finder</span>
+            </div>
 
             <div className="query">
                 {showQuery ? <>
@@ -233,7 +235,9 @@ LIMIT 100
                 )}
             </div>
 
-            <div className="footer"></div>
+            <div className="footer">
+                <span className="copyright">All movie data © copyright <a href="https://www.imdb.com">IMDb</a></span>
+            </div>
         </div >
     );
 };
