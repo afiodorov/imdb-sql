@@ -181,7 +181,7 @@ LIMIT 100
     return (
         <div className="App">
             <div className="header">
-                <span className='title'>IMDb SQL: Best Movie Finder</span>
+                <span className='title'>IMDb SQL BEST MOVIE FINDER</span>
             </div>
 
             <div className="query">
