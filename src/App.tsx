@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
-import {defaultQuery} from './sql';
+import {defaultQuery, cacheSelectColumns, getCachedSelectColumns} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
 import {storeParquetInIndexedDB, getParquetFileFromIndexedDB} from './cache';
@@ -63,7 +63,12 @@ const App: React.FC = () => {
     }
     const [buildQuery, setBuildQuery] = useState<RuleGroupType>(JSON.parse(localStorage.getItem('buildQuery') || 'null') || initialBuildQuery)
 
-    const setQueryAndStore = useLocalStorageSetter(setQuery, 'query', false)
+    const setQueryAndStore0 = useLocalStorageSetter(setQuery, 'query', false)
+    const setQueryAndStore = (q: string) => {
+        cacheSelectColumns(q)
+        setQueryAndStore0(q)
+    }
+
     const setBuildQueryAndStore = useLocalStorageSetter(setBuildQuery, 'buildQuery', true)
 
     useEffect(() => {
@@ -159,23 +164,27 @@ const App: React.FC = () => {
     };
 
     const handleBuildQuery = () => {
-        const q = formatQuery(buildQuery,
-            {
-                format: 'sql',
-                parseNumbers: true,
-                ruleProcessor: customRuleProcessor
-            })
-            .replaceAll(" and ", " and\n")
-            .replaceAll(" or ", " or\n");
+        const cachedSelectColumns = getCachedSelectColumns();
+        const selectColumns = cachedSelectColumns && cachedSelectColumns.length > 0 ? cachedSelectColumns : '* EXCLUDE (titleType, primaryTitle, language)';
 
-        setQueryAndStore(`SELECT * EXCLUDE (titleType, primaryTitle, language)
+        const whereClause = formatQuery(buildQuery, {
+            format: 'sql',
+            parseNumbers: true,
+            ruleProcessor: customRuleProcessor,
+        })
+            .replaceAll(' and ', ' and\n')
+            .replaceAll(' or ', ' or\n');
+
+        const newQuery = `SELECT ${selectColumns}
 FROM 'imdb01-11-2024.parquet'
 WHERE
-${q}
+${whereClause}
 ORDER BY
   averageRating DESC
 LIMIT 100
-`)
+`;
+
+        setQueryAndStore(newQuery);
     }
 
     return (
