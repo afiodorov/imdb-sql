@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
-import {defaultQuery, cacheSelectColumns, getCachedSelectColumns} from './sql';
+import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
 import {storeParquetInIndexedDB, getParquetFileFromIndexedDB} from './cache';
@@ -65,7 +65,7 @@ const App: React.FC = () => {
 
     const setQueryAndStore0 = useLocalStorageSetter(setQuery, 'query', false)
     const setQueryAndStore = (q: string) => {
-        cacheSelectColumns(q)
+        cacheQueryParts(q)
         setQueryAndStore0(q)
     }
 
@@ -164,8 +164,9 @@ const App: React.FC = () => {
     };
 
     const handleBuildQuery = () => {
-        const cachedSelectColumns = getCachedSelectColumns();
-        const selectColumns = cachedSelectColumns && cachedSelectColumns.length > 0 ? cachedSelectColumns : '* EXCLUDE (titleType, primaryTitle, language)';
+        const cachedSelectColumns = getCachedSelectColumns() || '* EXCLUDE (titleType, primaryTitle, language)';
+        const cachedOrderByClause = getCachedOrderByClause() || 'averageRating DESC';
+        const cachedLimitValue = getCachedLimitValue() || '100';
 
         const whereClause = formatQuery(buildQuery, {
             format: 'sql',
@@ -175,17 +176,22 @@ const App: React.FC = () => {
             .replaceAll(' and ', ' and\n')
             .replaceAll(' or ', ' or\n');
 
-        const newQuery = `SELECT ${selectColumns}
+        let newQuery = `SELECT ${cachedSelectColumns}
 FROM 'imdb01-11-2024.parquet'
 WHERE
 ${whereClause}
-ORDER BY
-  averageRating DESC
-LIMIT 100
 `;
 
+        if (cachedOrderByClause) {
+            newQuery += `ORDER BY ${cachedOrderByClause}\n`;
+        }
+
+        if (cachedLimitValue) {
+            newQuery += `LIMIT ${cachedLimitValue}\n`;
+        }
+
         setQueryAndStore(newQuery);
-    }
+    };
 
     return (
         <div className="App">
