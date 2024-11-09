@@ -30,6 +30,7 @@ const App: React.FC = () => {
 
     // Initialize the query state with the value from the URL or the default query
     const [query, setQuery] = useState<string>(searchParams.get('query') || localStorage.getItem('query') || defaultQuery)
+    const [lastQuery, setLastQuery] = useState<string>('');
     const [querySelection, setQuerySelection] = useState<string>("");
 
     const initialBuildQuery: RuleGroupType = {
@@ -112,6 +113,7 @@ const App: React.FC = () => {
         if (!db || !parquetLoaded) return;
 
         setLoading(true);
+        setLastQuery(customQuery);
 
         try {
             const connection = await db.connect();
@@ -190,7 +192,7 @@ ${whereClause}
             newQuery += `LIMIT ${cachedLimitValue}\n`;
         }
 
-        setQueryAndStore(newQuery);
+        setQueryAndStore(newQuery.trim());
     };
 
     return (
@@ -219,7 +221,7 @@ ${whereClause}
             <div className="actions">
                 <div className="button-wrapper">
                     {showQuery ? <>
-                        <button type="button" onClick={handleQueryRun}>Run</button>
+                        <button type="button" onClick={handleQueryRun} disabled={lastQuery == query}>Run</button>
                         <button type="button" onClick={handleBuildQuery}>Build</button>
                         <button type="button" onClick={() => {
                             setQueryAndStore(defaultQuery)
