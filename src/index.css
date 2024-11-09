@@ -109,10 +109,11 @@ th {
 }
 
 .editor {
-  overflow-y: scroll;
+  overflow-y: auto;
   border-color: #8081a2;
   border-style: solid;
   border-radius: 0.25rem;
   border-width: 1px;
-  /* background: rgba(0, 75, 183, 0.2); */
+  min-height: 200px;
+  resize: vertical;
 }
