@@ -221,7 +221,8 @@ ${whereClause}
             <div className="actions">
                 <div className="button-wrapper">
                     {showQuery ? <>
-                        <button type="button" onClick={handleQueryRun} disabled={lastQuery == query}>Run</button>
+                        <button type="button" onClick={handleQueryRun} disabled={
+                            lastQuery == (querySelection || query) && error === ''}>Run</button>
                         <button type="button" onClick={handleBuildQuery}>Build</button>
                         <button type="button" onClick={() => {
                             setQueryAndStore(defaultQuery)
