@@ -19,7 +19,7 @@ th {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: minmax(10px, 1fr) 20fr 20fr minmax(10px, 1fr);
+  grid-template-columns: minmax(10px, 1fr) 20fr 10px 20fr minmax(10px, 1fr);
   grid-template-rows:
     minmax(min-content, max-content)
     minmax(min-content, max-content)
@@ -27,11 +27,11 @@ th {
     minmax(min-content, max-content)
     10px;
   grid-template-areas:
-    ". h h ."
-    ". q b ."
-    ". a a ."
-    ". t t ."
-    ". f f .";
+    ". h h h ."
+    ". q . b ."
+    ". a a a ."
+    ". t t t ."
+    ". f f f .";
 }
 
 .App > .header {
@@ -73,6 +73,7 @@ th {
     grid-template-rows:
       minmax(min-content, max-content)
       minmax(min-content, max-content)
+      10px
       minmax(min-content, max-content)
       50px
       minmax(min-content, max-content)
@@ -80,6 +81,7 @@ th {
     grid-template-areas:
       ". h ."
       ". q ."
+      ". . ."
       ". b ."
       ". a ."
       ". t ."
@@ -104,4 +106,13 @@ th {
     letter-spacing: 1px;
     padding: 1rem 0;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.editor {
+  overflow-y: scroll;
+  border-color: #8081a2;
+  border-style: solid;
+  border-radius: 0.25rem;
+  border-width: 1px;
+  /* background: rgba(0, 75, 183, 0.2); */
 }

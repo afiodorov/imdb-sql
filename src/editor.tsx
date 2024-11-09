@@ -32,5 +32,6 @@ export const Editor: React.FC<EditorProps> = ({value, onChange, setSelection}) =
         width="100%"
         height="200px"
         readOnly={false}
+        className="editor"
     />
 }
