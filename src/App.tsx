@@ -167,7 +167,7 @@ const App: React.FC = () => {
 
     const handleBuildQuery = () => {
         const cachedSelectColumns = getCachedSelectColumns() || '* EXCLUDE (titleType, primaryTitle, language)';
-        const cachedOrderByClause = getCachedOrderByClause() || 'averageRating DESC';
+        const cachedOrderByClause = getCachedOrderByClause() || '(numVotes * averageRating + 700000) / (numVotes + 100000) DESC';
         const cachedLimitValue = getCachedLimitValue() || '100';
 
         const whereClause = formatQuery(buildQuery, {

@@ -5,7 +5,7 @@ WHERE
 numVotes >= 100000 and
 titleType = 'movie' and
 startYear >= 2015)
-ORDER BY averageRating DESC
+ORDER BY (numVotes * averageRating + 700000) / (numVotes + 100000) DESC
 LIMIT 100`;
 
 
