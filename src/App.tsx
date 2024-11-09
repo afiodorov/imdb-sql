@@ -113,7 +113,6 @@ const App: React.FC = () => {
         if (!db || !parquetLoaded) return;
 
         setLoading(true);
-        setLastQuery(customQuery);
 
         try {
             const connection = await db.connect();
@@ -143,6 +142,7 @@ const App: React.FC = () => {
             setData(rows);
             setColumns(columnDefs);
             setError("");
+            setLastQuery(customQuery);
         } catch (error) {
             console.error('Error querying Parquet file:', error);
             setError(`${error}`)
