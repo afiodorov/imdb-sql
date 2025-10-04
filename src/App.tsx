@@ -72,44 +72,97 @@ const App: React.FC = () => {
 
     const setBuildQueryAndStore = useLocalStorageSetter(setBuildQuery, 'buildQuery', true)
 
-    useEffect(() => {
+    const loadParquetFile = async () => {
         if (!db || parquetLoaded) return;
 
-        const loadParquetFile = async () => {
-            try {
-                const parquetBlob: Blob = await getParquetFileFromIndexedDB('imdb04-10-2025.parquet');
-                const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
-                if (arrayBuffer.byteLength > 1000) {
-                    await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(arrayBuffer));
-                    setParquetLoaded(true);
-                    return
-                }
-            } catch (error) {
-                // pass
-            }
-
-            try {
-                const parquetUrl = '/imdb04-10-2025.parquet';
-                const response = await fetch(parquetUrl);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
-                }
-                const parquetArrayBuffer = await response.arrayBuffer();
-                const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
-                await storeParquetInIndexedDB('imdb04-10-2025.parquet', parquetBlob);
-
-                await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(parquetArrayBuffer));
+        try {
+            const parquetBlob: Blob = await getParquetFileFromIndexedDB('imdb04-10-2025.parquet');
+            const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
+            if (arrayBuffer.byteLength > 1000) {
+                await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(arrayBuffer));
                 setParquetLoaded(true);
-            } catch (error) {
-                console.error('Error loading Parquet file:', error);
+                return
             }
-        };
+        } catch (error) {
+            // pass
+        }
 
-        loadParquetFile();
-    }, [db, parquetLoaded]);
+        try {
+            const parquetUrl = '/imdb04-10-2025.parquet';
+            const response = await fetch(parquetUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
+            }
+            const parquetArrayBuffer = await response.arrayBuffer();
+            const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
+            await storeParquetInIndexedDB('imdb04-10-2025.parquet', parquetBlob);
 
+            await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(parquetArrayBuffer));
+            setParquetLoaded(true);
+        } catch (error) {
+            console.error('Error loading Parquet file:', error);
+        }
+    };
+
+
+    const fetchCachedData = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch('/default_query_cache.json');
+            if (!response.ok) {
+                throw new Error('Failed to fetch cached data');
+            }
+            const cachedRows = await response.json();
+            const rows = cachedRows.map((row: any, index: number) => ({...row, id: index}));
+
+            // Define columns based on the cached data
+            if (rows.length > 0) {
+                const firstRow = rows[0];
+                const columnDefs: GridColDef[] = Object.keys(firstRow)
+                    .filter(key => key !== 'id')
+                    .map((key) => {
+                        const colDef: GridColDef = {
+                            field: key,
+                            headerName: key,
+                            width: 150,
+                            sortable: true,
+                            filterable: true,
+                        };
+
+                        if (key === 'titleId') {
+                            colDef.renderCell = (params: GridCellParams) => (
+                                <ImdbLink titleId={params.value as string} />
+                            );
+                        }
+
+                        return colDef;
+                    });
+                setColumns(columnDefs);
+            }
+
+            setData(rows);
+            setError("");
+            setLastQuery(defaultQuery);
+        } catch (error) {
+            console.error('Error loading cached data:', error);
+            setError(`${error}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchData = async (customQuery: string) => {
+        // Check if query matches default and we haven't loaded parquet yet
+        if (customQuery.trim() === defaultQuery.trim() && !parquetLoaded) {
+            await fetchCachedData();
+            return;
+        }
+
+        // For custom queries, ensure parquet is loaded first
+        if (!parquetLoaded) {
+            await loadParquetFile();
+        }
+
         if (!db || !parquetLoaded) return;
 
         setLoading(true);
@@ -152,11 +205,11 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
-        if (db && parquetLoaded) {
+        if (db) {
             fetchData(query);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [db, parquetLoaded]);
+    }, [db]);
 
     const handleQueryRun = () => {
         const queryToRun = querySelection || query;

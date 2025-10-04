@@ -6,4 +6,6 @@ dependencies = [
     "polars",
     "requests",
     "boto3",
+    "duckdb",
+    "pandas",
 ]

@@ -43,7 +43,10 @@ for filename in dest_dir.glob("*.tsv.gz"):
 
 
 date_str = datetime.now().strftime("%d-%m-%Y")
-dest_joined = dest_dir / f"imdb{date_str}.parquet"
+# Save to public/ directory so it's included in the build
+public_dir = Path(__file__).parent / "public"
+public_dir.mkdir(exist_ok=True)
+dest_joined = public_dir / f"imdb{date_str}.parquet"
 s3_bucket = "imdb-sql"
 s3_key = f"imdb{date_str}.parquet"
 
