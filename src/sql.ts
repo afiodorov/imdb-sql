@@ -1,5 +1,5 @@
 export const defaultQuery = `SELECT * EXCLUDE (titleType, primaryTitle, language)
-FROM 'imdb01-11-2024.parquet'
+FROM 'imdb04-10-2025.parquet'
 WHERE
 (region is null and
 numVotes >= 100000 and

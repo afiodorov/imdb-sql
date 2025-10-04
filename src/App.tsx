@@ -77,10 +77,10 @@ const App: React.FC = () => {
 
         const loadParquetFile = async () => {
             try {
-                const parquetBlob: Blob = await getParquetFileFromIndexedDB('imdb01-11-2024.parquet');
+                const parquetBlob: Blob = await getParquetFileFromIndexedDB('imdb04-10-2025.parquet');
                 const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
                 if (arrayBuffer.byteLength > 1000) {
-                    await db.registerFileBuffer('imdb01-11-2024.parquet', new Uint8Array(arrayBuffer));
+                    await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(arrayBuffer));
                     setParquetLoaded(true);
                     return
                 }
@@ -89,16 +89,16 @@ const App: React.FC = () => {
             }
 
             try {
-                const parquetUrl = '/imdb01-11-2024.parquet';
+                const parquetUrl = '/imdb04-10-2025.parquet';
                 const response = await fetch(parquetUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
                 }
                 const parquetArrayBuffer = await response.arrayBuffer();
                 const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
-                await storeParquetInIndexedDB('imdb01-11-2024.parquet', parquetBlob);
+                await storeParquetInIndexedDB('imdb04-10-2025.parquet', parquetBlob);
 
-                await db.registerFileBuffer('imdb01-11-2024.parquet', new Uint8Array(parquetArrayBuffer));
+                await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(parquetArrayBuffer));
                 setParquetLoaded(true);
             } catch (error) {
                 console.error('Error loading Parquet file:', error);
@@ -179,7 +179,7 @@ const App: React.FC = () => {
             .replaceAll(' or ', ' or\n');
 
         let newQuery = `SELECT ${cachedSelectColumns}
-FROM 'imdb01-11-2024.parquet'
+FROM 'imdb04-10-2025.parquet'
 WHERE
 ${whereClause}
 `;
