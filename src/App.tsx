@@ -79,8 +79,11 @@ const App: React.FC = () => {
 
     const setBuildQueryAndStore = useLocalStorageSetter(setBuildQuery, 'buildQuery', true)
 
-    const loadParquetFile = async () => {
-        if (!db || parquetLoaded) return;
+    // Returns whether the parquet is registered; the boolean matters because
+    // callers can't observe the parquetLoaded state update within the same call
+    const loadParquetFile = async (): Promise<boolean> => {
+        if (!db) return false;
+        if (parquetLoaded) return true;
 
         try {
             const parquetBlob: Blob = await getParquetFileFromIndexedDB(PARQUET_FILE);
@@ -88,9 +91,9 @@ const App: React.FC = () => {
             if (arrayBuffer.byteLength > 1000) {
                 await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(arrayBuffer));
                 setParquetLoaded(true);
-                return
+                return true
             }
-        } catch (error) {
+        } catch {
             // pass
         }
 
@@ -107,8 +110,10 @@ const App: React.FC = () => {
 
             await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(parquetArrayBuffer));
             setParquetLoaded(true);
+            return true
         } catch (error) {
             console.error('Error loading Parquet file:', error);
+            return false
         }
     };
 
@@ -167,11 +172,7 @@ const App: React.FC = () => {
         }
 
         // For custom queries, ensure parquet is loaded first
-        if (!parquetLoaded) {
-            await loadParquetFile();
-        }
-
-        if (!db || !parquetLoaded) return;
+        if (!await loadParquetFile()) return;
 
         setLoading(true);
 
