@@ -1,5 +1,18 @@
+// Stable logical name queries refer to; the versioned physical file is
+// registered under this name so stored/shared queries survive dataset updates.
+export const PARQUET_NAME = 'imdb.parquet';
+
+// Versioned file in public/: used as the fetch URL and IndexedDB cache key,
+// so a new dataset automatically busts client caches.
+export const PARQUET_FILE = 'imdb12-06-2026.parquet';
+
+// Rewrite queries saved before the stable name existed (dated filenames).
+export function migrateQuery(q: string | null): string | null {
+    return q && q.replace(/imdb\d{2}-\d{2}-\d{4}\.parquet/g, PARQUET_NAME);
+}
+
 export const defaultQuery = `SELECT * EXCLUDE (titleType, primaryTitle, language)
-FROM 'imdb04-10-2025.parquet'
+FROM '${PARQUET_NAME}'
 WHERE
 (region is null and
 numVotes >= 100000 and

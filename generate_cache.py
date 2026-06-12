@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 import duckdb
 
-# Path to the parquet file
-parquet_path = Path.home() / "data" / "imdb" / "imdb04-10-2025.parquet"
+# Path to the parquet file (versioned filename, found by glob)
+parquet_path = next((Path(__file__).parent / "public").glob("imdb*-*.parquet"))
 
-# Default query from the app
+# Default query from the app (queries use the stable name 'imdb.parquet')
 default_query = """SELECT * EXCLUDE (titleType, primaryTitle, language)
-FROM 'imdb04-10-2025.parquet'
+FROM 'imdb.parquet'
 WHERE
 (region is null and
 numVotes >= 100000 and
@@ -21,7 +21,7 @@ con = duckdb.connect()
 con.execute(f"CREATE OR REPLACE VIEW parquet_data AS SELECT * FROM '{parquet_path}'")
 
 # Update query to use the view
-query = default_query.replace("'imdb04-10-2025.parquet'", "parquet_data")
+query = default_query.replace("'imdb.parquet'", "parquet_data")
 result = con.execute(query).fetchdf()
 
 # Convert to JSON

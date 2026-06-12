@@ -51,6 +51,31 @@ export const storeParquetInIndexedDB = async (
     }
 };
 
+// Best-effort cleanup of cached parquet files from older dataset versions
+export const deleteOtherParquetFiles = async (keepFileName: string): Promise<void> => {
+    try {
+        const db = await openDatabase();
+        const transaction = db.transaction('parquetFiles', 'readwrite');
+        const store = transaction.objectStore('parquetFiles');
+
+        const keysRequest = store.getAllKeys();
+        await new Promise<void>((resolve, reject) => {
+            keysRequest.onsuccess = () => {
+                for (const key of keysRequest.result) {
+                    if (key !== keepFileName) {
+                        store.delete(key);
+                    }
+                }
+                resolve();
+            };
+            keysRequest.onerror = (event: Event) =>
+                reject(`Error listing files in IndexedDB: ${(event.target as IDBRequest).error}`);
+        });
+    } catch (error) {
+        console.warn(`Failed to clean up old Parquet files: ${error}`);
+    }
+};
+
 export const getParquetFileFromIndexedDB = async (
     fileName: string
 ): Promise<Blob> => {

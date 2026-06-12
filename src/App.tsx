@@ -2,10 +2,10 @@ import React, {useEffect, useState} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
-import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue} from './sql';
+import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue, migrateQuery, PARQUET_NAME, PARQUET_FILE} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
-import {storeParquetInIndexedDB, getParquetFileFromIndexedDB} from './cache';
+import {storeParquetInIndexedDB, getParquetFileFromIndexedDB, deleteOtherParquetFiles} from './cache';
 import {QueryBuilder, formatQuery, RuleGroupType} from 'react-querybuilder';
 import {fields} from './fields';
 import {useLocalStorageSetter} from "./storage";
@@ -28,8 +28,15 @@ const App: React.FC = () => {
     const [error, setError] = useState<string>("");
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Initialize the query state with the value from the URL or the default query
-    const [query, setQuery] = useState<string>(searchParams.get('query') || localStorage.getItem('query') || defaultQuery)
+    // Initialize the query state with the value from the URL or the default query,
+    // rewriting dated parquet filenames from older versions to the stable name
+    const [query, setQuery] = useState<string>(() => {
+        const stored = migrateQuery(localStorage.getItem('query'));
+        if (stored) {
+            localStorage.setItem('query', stored);
+        }
+        return migrateQuery(searchParams.get('query')) || stored || defaultQuery;
+    })
     const [lastQuery, setLastQuery] = useState<string>('');
     const [querySelection, setQuerySelection] = useState<string>("");
 
@@ -76,10 +83,10 @@ const App: React.FC = () => {
         if (!db || parquetLoaded) return;
 
         try {
-            const parquetBlob: Blob = await getParquetFileFromIndexedDB('imdb04-10-2025.parquet');
+            const parquetBlob: Blob = await getParquetFileFromIndexedDB(PARQUET_FILE);
             const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
             if (arrayBuffer.byteLength > 1000) {
-                await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(arrayBuffer));
+                await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(arrayBuffer));
                 setParquetLoaded(true);
                 return
             }
@@ -88,16 +95,17 @@ const App: React.FC = () => {
         }
 
         try {
-            const parquetUrl = '/imdb04-10-2025.parquet';
+            const parquetUrl = `/${PARQUET_FILE}`;
             const response = await fetch(parquetUrl);
             if (!response.ok) {
                 throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
             }
             const parquetArrayBuffer = await response.arrayBuffer();
             const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
-            await storeParquetInIndexedDB('imdb04-10-2025.parquet', parquetBlob);
+            await storeParquetInIndexedDB(PARQUET_FILE, parquetBlob);
+            await deleteOtherParquetFiles(PARQUET_FILE);
 
-            await db.registerFileBuffer('imdb04-10-2025.parquet', new Uint8Array(parquetArrayBuffer));
+            await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(parquetArrayBuffer));
             setParquetLoaded(true);
         } catch (error) {
             console.error('Error loading Parquet file:', error);
@@ -232,7 +240,7 @@ const App: React.FC = () => {
             .replaceAll(' or ', ' or\n');
 
         let newQuery = `SELECT ${cachedSelectColumns}
-FROM 'imdb04-10-2025.parquet'
+FROM '${PARQUET_NAME}'
 WHERE
 ${whereClause}
 `;
@@ -302,7 +310,7 @@ ${whereClause}
                     }}
                         pageSizeOptions={[10, 25, 50, 100]}
                         slots={{toolbar: GridToolbar}}
-                    />) : (<p>{error}</p>)
+                    />) : (<p className="error">{error}</p>)
                 )}
             </div>
 

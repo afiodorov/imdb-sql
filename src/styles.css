@@ -6,6 +6,13 @@
   min-width: 420px;
 }
 
+.queryBuilder button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .validateQuery .queryBuilder .ruleGroup.queryBuilder-invalid {
   background-color: rgba(102, 51, 153, 0.4);
 }
