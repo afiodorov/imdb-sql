@@ -172,7 +172,7 @@ const App: React.FC = () => {
         }
 
         // For custom queries, ensure parquet is loaded first
-        if (!await loadParquetFile()) return;
+        if (!db || !await loadParquetFile()) return;
 
         setLoading(true);
 
