@@ -2,9 +2,25 @@
 // registered under this name so stored/shared queries survive dataset updates.
 export const PARQUET_NAME = 'imdb.parquet';
 
-// Versioned file in public/: used as the fetch URL and IndexedDB cache key,
-// so a new dataset automatically busts client caches.
-export const PARQUET_FILE = 'imdb12-06-2026.parquet';
+// Fallback physical filename, used only if version.json can't be fetched
+// (e.g. a stale CDN edge or offline first load).
+export const FALLBACK_PARQUET_FILE = 'imdb12-06-2026.parquet';
+
+// The current physical parquet filename is discovered at runtime from
+// public/version.json (rewritten by the data pipeline on each dataset update),
+// so a new dataset ships without an app rebuild. The dated name still serves as
+// the fetch URL and IndexedDB cache key, busting client caches automatically.
+// Cached as a single in-flight promise so concurrent callers share one fetch.
+let parquetFilePromise: Promise<string> | null = null;
+export function getParquetFile(): Promise<string> {
+    if (!parquetFilePromise) {
+        parquetFilePromise = fetch(`/version.json?t=${Date.now()}`)
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error('no version.json'))))
+            .then((j) => (j.parquet as string) || FALLBACK_PARQUET_FILE)
+            .catch(() => FALLBACK_PARQUET_FILE);
+    }
+    return parquetFilePromise;
+}
 
 // Rewrite queries saved before the stable name existed (dated filenames).
 export function migrateQuery(q: string | null): string | null {

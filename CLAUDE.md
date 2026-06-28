@@ -27,10 +27,34 @@ aws cloudfront create-invalidation --distribution-id E2EYWSVOZPFWUP --paths "/*"
 
 `--exclude "*.parquet"` matters: the 104MB parquet in `public/` is copied into `dist/` by Vite with a fresh mtime, so without the exclude `s3 sync` re-uploads it every deploy even though it's unchanged. When the dataset itself changes, upload it explicitly (`aws s3 cp public/<new>.parquet s3://imdb-sql/`).
 
-Python tooling (data pipeline) uses `uv` with deps from `pyproject.toml`:
+Python tooling (data pipeline) uses `uv` with deps from `pyproject.toml`. The
+pipeline is split into single-responsibility scripts (so the Airflow DAG can retry
+one step without redoing the multi-GB download):
 
-- `uv run imdb_extract.py` — download IMDb TSV dumps to `~/data/imdb`, join them into the parquet dataset
-- `uv run generate_cache.py` — re-run the default query against the parquet and write `public/default_query_cache.json`
+- `uv run fetch_tsv.py` — download + unzip the 3 IMDb dumps we use into `~/data/imdb` (skips files already present)
+- `uv run build_parquet.py` — join them into the dated parquet (streamed via `sink_parquet`, low RAM) and write `public/version.json` pointing at it
+- `uv run upload_parquet.py` — upload that parquet to S3 (skips if the key already exists)
+- `uv run generate_cache.py` — re-run the default query against the parquet named in `version.json` → `public/default_query_cache.json`
+- `uv run deploy_data.py` — upload `version.json` + `default_query_cache.json` to S3 (no-cache) and invalidate them on CloudFront
+- `uv run imdb_extract.py` — convenience orchestrator = fetch_tsv + build_parquet + upload_parquet in one shot (for manual local runs)
+
+### Automated dataset refresh (no rebuild needed)
+
+A weekly Airflow DAG (`dags/imdb_dataset_update.py`) on the Hetzner box
+(`root@167.233.115.172`, `AIRFLOW_HOME=/root/airflow`, repo rsync'd to
+`/root/imdb-sql`) runs Mondays 04:00 UTC as granular tasks:
+`prepare → fetch_tsv → build_parquet → upload_parquet → generate_cache → publish → cleanup`.
+`prepare` wipes stale inputs (fresh data each week); `cleanup` (`all_done`) frees
+disk afterwards. It needs AWS credentials for boto3 on the box (`~/.aws`, region
+`eu-west-2`) — IAM user `imdb-sql-box`, with `s3:ListBucket` + `s3:GetObject`/`PutObject`
+on `imdb-sql` and `cloudfront:CreateInvalidation` on `E2EYWSVOZPFWUP`. (`ListBucket`
+matters: without it `HeadObject` on a missing key returns 403, not 404.)
+
+**The box's Airflow uses Postgres**, configured via env in `/root/airflow/airflow.env`
+(not the `sqlite` in `airflow.cfg`). The UI/scheduler are the source of truth; any
+`airflow` CLI must `set -a; . /root/airflow/airflow.env; set +a` first, or it hits a
+stray SQLite DB the service ignores. Code changes don't auto-propagate — re-rsync
+`./` to `/root/imdb-sql/` (excluding `public`) and copy the DAG into `/root/airflow/dags/`.
 
 ## Architecture
 

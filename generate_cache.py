@@ -2,8 +2,14 @@ import json
 from pathlib import Path
 import duckdb
 
-# Path to the parquet file (versioned filename, found by glob)
-parquet_path = next((Path(__file__).parent / "public").glob("imdb*-*.parquet"))
+# Path to the parquet file: prefer the authoritative pointer in version.json
+# (written by imdb_extract.py), falling back to the newest matching file.
+public_dir = Path(__file__).parent / "public"
+version_path = public_dir / "version.json"
+if version_path.exists():
+    parquet_path = public_dir / json.loads(version_path.read_text())["parquet"]
+else:
+    parquet_path = max(public_dir.glob("imdb*-*.parquet"), key=lambda p: p.stat().st_mtime)
 
 # Default query from the app (queries use the stable name 'imdb.parquet')
 default_query = """SELECT * EXCLUDE (titleType, primaryTitle, language)

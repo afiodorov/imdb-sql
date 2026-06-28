@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
-import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue, migrateQuery, PARQUET_NAME, PARQUET_FILE} from './sql';
+import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue, migrateQuery, PARQUET_NAME, getParquetFile} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
 import {storeParquetInIndexedDB, getParquetFileFromIndexedDB, deleteOtherParquetFiles} from './cache';
@@ -85,8 +85,10 @@ const App: React.FC = () => {
         if (!db) return false;
         if (parquetLoaded) return true;
 
+        const parquetFile = await getParquetFile();
+
         try {
-            const parquetBlob: Blob = await getParquetFileFromIndexedDB(PARQUET_FILE);
+            const parquetBlob: Blob = await getParquetFileFromIndexedDB(parquetFile);
             const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
             if (arrayBuffer.byteLength > 1000) {
                 await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(arrayBuffer));
@@ -98,15 +100,15 @@ const App: React.FC = () => {
         }
 
         try {
-            const parquetUrl = `/${PARQUET_FILE}`;
+            const parquetUrl = `/${parquetFile}`;
             const response = await fetch(parquetUrl);
             if (!response.ok) {
                 throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
             }
             const parquetArrayBuffer = await response.arrayBuffer();
             const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
-            await storeParquetInIndexedDB(PARQUET_FILE, parquetBlob);
-            await deleteOtherParquetFiles(PARQUET_FILE);
+            await storeParquetInIndexedDB(parquetFile, parquetBlob);
+            await deleteOtherParquetFiles(parquetFile);
 
             await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(parquetArrayBuffer));
             setParquetLoaded(true);
