@@ -170,6 +170,13 @@ th {
   color: inherit;
 }
 
+.dataset-info {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
 
 .title {
     font-size: 2rem;

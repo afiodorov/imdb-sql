@@ -2,7 +2,7 @@
 
 Only the three dumps the join needs (akas/basics/ratings); skips files already
 present so a within-run retry of a later step never re-downloads. Fresh data
-across weekly runs is guaranteed by the DAG's `prepare` task wiping the dir first.
+across runs is guaranteed by the DAG's `prepare` task wiping the dir first.
 """
 
 import gzip

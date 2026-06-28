@@ -1,10 +1,10 @@
-"""Weekly IMDb dataset refresh, as granular tasks.
+"""Daily IMDb dataset refresh, as granular tasks.
 
 prepare -> fetch_tsv -> build_parquet -> upload_parquet -> generate_cache -> publish -> cleanup
 
 Split so a late failure (e.g. an S3/CloudFront hiccup) retries only that step
 instead of redoing the multi-GB download + join. `prepare` wipes stale inputs at
-the start (fresh data every weekly run); `fetch_tsv` skips files already present
+the start (fresh data every run); `fetch_tsv` skips files already present
 (cheap within-run retries); `cleanup` frees disk afterwards regardless of outcome.
 
 Because the app discovers the parquet filename at runtime from version.json, this
@@ -37,15 +37,15 @@ default_args = {
 
 with DAG(
     dag_id="imdb_dataset_update",
-    description="Weekly IMDb parquet rebuild + S3/CloudFront publish",
-    schedule="0 4 * * 1",            # 04:00 UTC every Monday
+    description="Daily IMDb parquet rebuild + S3/CloudFront publish",
+    schedule="0 4 * * *",            # 04:00 UTC daily (IMDb publishes dumps daily)
     start_date=datetime(2026, 6, 28),
     catchup=False,
     max_active_runs=1,
     default_args=default_args,
     tags=["imdb-sql"],
 ) as dag:
-    # Clean slate so each weekly run pulls fresh dumps even if a prior cleanup
+    # Clean slate so each run pulls fresh dumps even if a prior cleanup
     # didn't run. Separate from fetch so retrying a later task never re-wipes.
     prepare = BashOperator(task_id="prepare", bash_command=WIPE)
 
@@ -74,6 +74,13 @@ with DAG(
         bash_command=f"{RUN} deploy_data.py",
         execution_timeout=timedelta(minutes=15),
     )
+    # Only after the new parquet is live (publish ok) do we delete superseded ones
+    # from S3, keeping a small grace buffer of prior versions.
+    cleanup_s3 = BashOperator(
+        task_id="cleanup_s3",
+        bash_command=f"{RUN} cleanup_s3.py",
+        execution_timeout=timedelta(minutes=15),
+    )
     # Free the multi-GB TSVs + local parquet (already on S3) no matter what.
     cleanup = BashOperator(
         task_id="cleanup",
@@ -81,4 +88,4 @@ with DAG(
         trigger_rule=TriggerRule.ALL_DONE,
     )
 
-    prepare >> fetch >> build >> upload >> generate_cache >> publish >> cleanup
+    prepare >> fetch >> build >> upload >> generate_cache >> publish >> cleanup_s3 >> cleanup

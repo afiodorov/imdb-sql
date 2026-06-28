@@ -21,11 +21,15 @@ Static hosting on S3 (`s3://imdb-sql`, eu-west-2) behind CloudFront distribution
 
 ```sh
 npm run build
-aws s3 sync dist/ s3://imdb-sql/ --exclude "*.parquet" --delete
+aws s3 sync dist/ s3://imdb-sql/ --exclude "*.parquet" \
+  --exclude "version.json" --exclude "default_query_cache.json" --delete
 aws cloudfront create-invalidation --distribution-id E2EYWSVOZPFWUP --paths "/*"
 ```
 
-`--exclude "*.parquet"` matters: the 104MB parquet in `public/` is copied into `dist/` by Vite with a fresh mtime, so without the exclude `s3 sync` re-uploads it every deploy even though it's unchanged. When the dataset itself changes, upload it explicitly (`aws s3 cp public/<new>.parquet s3://imdb-sql/`).
+This deploys **app code only**. The dataset is owned by the Airflow DAG, not local
+deploys — so the excludes are load-bearing:
+- `--exclude "*.parquet"`: the 100MB+ parquet in `public/` is copied into `dist/` by Vite with a fresh mtime, so without the exclude `s3 sync` re-uploads it every deploy even though it's unchanged.
+- `--exclude "version.json" --exclude "default_query_cache.json"`: these are rewritten on S3 by the DAG (`deploy_data.py`) on every dataset refresh, so the repo's copies drift stale. Without the excludes, an app deploy would **revert the live dataset pointer** to whatever's checked in — silently serving old data. (This bit us once on 2026-06-28.) When the dataset itself changes, the DAG handles it; never publish it from a local app deploy.
 
 Python tooling (data pipeline) uses `uv` with deps from `pyproject.toml`. The
 pipeline is split into single-responsibility scripts (so the Airflow DAG can retry
@@ -36,19 +40,22 @@ one step without redoing the multi-GB download):
 - `uv run upload_parquet.py` — upload that parquet to S3 (skips if the key already exists)
 - `uv run generate_cache.py` — re-run the default query against the parquet named in `version.json` → `public/default_query_cache.json`
 - `uv run deploy_data.py` — upload `version.json` + `default_query_cache.json` to S3 (no-cache) and invalidate them on CloudFront
+- `uv run cleanup_s3.py` — delete superseded dated parquets from S3, keeping the `KEEP` newest (current named in `version.json` + a grace buffer); needs `s3:DeleteObject`
 - `uv run imdb_extract.py` — convenience orchestrator = fetch_tsv + build_parquet + upload_parquet in one shot (for manual local runs)
 
 ### Automated dataset refresh (no rebuild needed)
 
-A weekly Airflow DAG (`dags/imdb_dataset_update.py`) on the Hetzner box
+A daily Airflow DAG (`dags/imdb_dataset_update.py`) on the Hetzner box
 (`root@167.233.115.172`, `AIRFLOW_HOME=/root/airflow`, repo rsync'd to
-`/root/imdb-sql`) runs Mondays 04:00 UTC as granular tasks:
-`prepare → fetch_tsv → build_parquet → upload_parquet → generate_cache → publish → cleanup`.
-`prepare` wipes stale inputs (fresh data each week); `cleanup` (`all_done`) frees
+`/root/imdb-sql`) runs 04:00 UTC daily as granular tasks:
+`prepare → fetch_tsv → build_parquet → upload_parquet → generate_cache → publish → cleanup_s3 → cleanup`.
+`prepare` wipes stale inputs (fresh data each run); `cleanup_s3` (after a successful
+`publish`) deletes superseded parquets from S3; `cleanup` (`all_done`) frees local
 disk afterwards. It needs AWS credentials for boto3 on the box (`~/.aws`, region
-`eu-west-2`) — IAM user `imdb-sql-box`, with `s3:ListBucket` + `s3:GetObject`/`PutObject`
+`eu-west-2`) — IAM user `imdb-sql-box`, with `s3:ListBucket` + `s3:GetObject`/`PutObject`/`DeleteObject`
 on `imdb-sql` and `cloudfront:CreateInvalidation` on `E2EYWSVOZPFWUP`. (`ListBucket`
-matters: without it `HeadObject` on a missing key returns 403, not 404.)
+matters: without it `HeadObject` on a missing key returns 403, not 404. `DeleteObject`
+is needed by `cleanup_s3`.)
 
 **The box's Airflow uses Postgres**, configured via env in `/root/airflow/airflow.env`
 (not the `sqlite` in `airflow.cfg`). The UI/scheduler are the source of truth; any

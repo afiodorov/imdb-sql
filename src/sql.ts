@@ -6,20 +6,45 @@ export const PARQUET_NAME = 'imdb.parquet';
 // (e.g. a stale CDN edge or offline first load).
 export const FALLBACK_PARQUET_FILE = 'imdb12-06-2026.parquet';
 
-// The current physical parquet filename is discovered at runtime from
-// public/version.json (rewritten by the data pipeline on each dataset update),
-// so a new dataset ships without an app rebuild. The dated name still serves as
-// the fetch URL and IndexedDB cache key, busting client caches automatically.
-// Cached as a single in-flight promise so concurrent callers share one fetch.
-let parquetFilePromise: Promise<string> | null = null;
-export function getParquetFile(): Promise<string> {
-    if (!parquetFilePromise) {
-        parquetFilePromise = fetch(`/version.json?t=${Date.now()}`)
+export interface VersionInfo {
+    parquet: string;
+    // ISO timestamp written by build_parquet.py; absent in older version.json files.
+    generated?: string;
+}
+
+// The current dataset is discovered at runtime from public/version.json (rewritten
+// by the data pipeline on each dataset update), so a new dataset ships without an
+// app rebuild. The dated parquet name still serves as the fetch URL and IndexedDB
+// cache key, busting client caches automatically. Cached as a single in-flight
+// promise so concurrent callers share one fetch.
+let versionPromise: Promise<VersionInfo> | null = null;
+export function getVersionInfo(): Promise<VersionInfo> {
+    if (!versionPromise) {
+        versionPromise = fetch(`/version.json?t=${Date.now()}`)
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error('no version.json'))))
-            .then((j) => (j.parquet as string) || FALLBACK_PARQUET_FILE)
-            .catch(() => FALLBACK_PARQUET_FILE);
+            .then((j) => ({parquet: (j.parquet as string) || FALLBACK_PARQUET_FILE, generated: j.generated}))
+            .catch(() => ({parquet: FALLBACK_PARQUET_FILE}));
     }
-    return parquetFilePromise;
+    return versionPromise;
+}
+
+export function getParquetFile(): Promise<string> {
+    return getVersionInfo().then((v) => v.parquet || FALLBACK_PARQUET_FILE);
+}
+
+// The date the dataset was built: prefer the explicit `generated` timestamp, else
+// parse the DD-MM-YYYY embedded in the filename (e.g. imdb12-06-2026.parquet).
+export function getDatasetDate(v: VersionInfo): Date | null {
+    if (v.generated) {
+        const d = new Date(v.generated);
+        if (!isNaN(d.getTime())) return d;
+    }
+    const m = v.parquet.match(/imdb(\d{2})-(\d{2})-(\d{4})\.parquet/);
+    if (m) {
+        const [, dd, mm, yyyy] = m;
+        return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    }
+    return null;
 }
 
 // Rewrite queries saved before the stable name existed (dated filenames).

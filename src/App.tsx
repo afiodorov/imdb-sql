@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
-import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue, migrateQuery, PARQUET_NAME, getParquetFile} from './sql';
+import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue, migrateQuery, PARQUET_NAME, getParquetFile, getVersionInfo, getDatasetDate} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
 import {storeParquetInIndexedDB, getParquetFileFromIndexedDB, deleteOtherParquetFiles} from './cache';
@@ -26,6 +26,7 @@ const App: React.FC = () => {
     const [parquetLoaded, setParquetLoaded] = useState<boolean>(false);
     const [showQuery, setShowQuery] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
+    const [datasetLabel, setDatasetLabel] = useState<string>("");
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Initialize the query state with the value from the URL or the default query,
@@ -222,6 +223,17 @@ const App: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [db]);
 
+    // Show which dataset is loaded so users know how fresh the data is.
+    useEffect(() => {
+        getVersionInfo().then((v) => {
+            const date = getDatasetDate(v);
+            const when = date
+                ? date.toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'})
+                : null;
+            setDatasetLabel(when ? `Dataset updated ${when} (${v.parquet})` : `Dataset: ${v.parquet}`);
+        });
+    }, []);
+
     const handleQueryRun = () => {
         const queryToRun = querySelection || query;
 
@@ -319,6 +331,7 @@ ${whereClause}
 
             <div className="footer">
                 <span className="copyright">All movie data © copyright <a href="https://www.imdb.com">IMDb</a></span>
+                {datasetLabel ? <span className="dataset-info">{datasetLabel}</span> : null}
             </div>
         </div >
     );
