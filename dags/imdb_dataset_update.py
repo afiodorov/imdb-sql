@@ -1,11 +1,14 @@
 """Daily IMDb dataset refresh, as granular tasks.
 
-prepare -> fetch_tsv -> build_parquet -> upload_parquet -> generate_cache -> publish -> cleanup
+prepare -> fetch_tsv -> build_parquet -> upload_parquet -> generate_cache
+        -> publish -> cleanup_s3 -> cleanup
 
 Split so a late failure (e.g. an S3/CloudFront hiccup) retries only that step
 instead of redoing the multi-GB download + join. `prepare` wipes stale inputs at
 the start (fresh data every run); `fetch_tsv` skips files already present
 (cheap within-run retries); `cleanup` frees disk afterwards regardless of outcome.
+A `watcher` (ONE_FAILED) turns the run red if any step fails, since the ALL_DONE
+`cleanup` leaf would otherwise report the run green even after a failed build.
 
 Because the app discovers the parquet filename at runtime from version.json, this
 needs no frontend rebuild/deploy.
@@ -87,5 +90,17 @@ with DAG(
         bash_command=WIPE,
         trigger_rule=TriggerRule.ALL_DONE,
     )
+    # Make the run honestly red on failure. The pipeline's only natural leaf is
+    # `cleanup` (ALL_DONE), which succeeds even when an upstream task failed — so
+    # a failed build_parquet was reported as a *green* run and went unnoticed
+    # (bit us 2026-06-30). This watcher fires only when something upstream failed
+    # (ONE_FAILED) and exits non-zero, so the DAG run state reflects the failure.
+    watcher = BashOperator(
+        task_id="watcher",
+        bash_command="echo 'A pipeline task failed; failing the run.' >&2; exit 1",
+        trigger_rule=TriggerRule.ONE_FAILED,
+        retries=0,
+    )
 
     prepare >> fetch >> build >> upload >> generate_cache >> publish >> cleanup_s3 >> cleanup
+    [prepare, fetch, build, upload, generate_cache, publish, cleanup_s3] >> watcher

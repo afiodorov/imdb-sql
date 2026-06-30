@@ -61,11 +61,13 @@ def build() -> str:
     )
 
     parquet_opts = {"compression": "zstd", "compression_level": 12}
-    try:
-        joined.sink_parquet(dest, **parquet_opts)
-    except Exception as e:
-        print(f"Streaming sink_parquet failed ({e}); falling back to collect()")
-        joined.collect().write_parquet(dest, **parquet_opts)
+    # Stream the join straight to disk; do NOT fall back to an in-memory
+    # collect(). On the memory-constrained box (7.6GB) materializing the full
+    # join peaks ~5.5GB and, under any extra pressure, swap-thrashes for the
+    # entire execution_timeout instead of failing fast — which is exactly how a
+    # build silently burned both retries on 2026-06-30. If the streaming sink
+    # genuinely can't run, let it raise so the task retries/alerts.
+    joined.sink_parquet(dest, engine="streaming", **parquet_opts)
 
     version_path = PUBLIC_DIR / "version.json"
     version_path.write_text(
