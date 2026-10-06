@@ -36,7 +36,7 @@ pipeline is split into single-responsibility scripts (so the Airflow DAG can ret
 one step without redoing the multi-GB download):
 
 - `uv run fetch_tsv.py` — download + unzip the 3 IMDb dumps we use into `~/data/imdb` (skips files already present)
-- `uv run build_parquet.py` — join them into the dated parquet (streamed via `sink_parquet`, low RAM) and write `public/version.json` pointing at it
+- `uv run build_parquet.py` — join them (streamed via `sink_parquet`, low RAM), re-sort by `numVotes DESC` into 100k-row groups (DuckDB, spills to disk) so range reads can skip row groups, write `public/imdb<DD-MM-YYYY-HHMM>.parquet`, and point `public/version.json` at it. The time in the name is deliberate: `upload_parquet.py` skips keys already on S3, and overwriting a key in place would let CDN edges/browsers mix byte ranges of two files, so every build needs a fresh name (`cleanup_s3.py` matches both this and the older date-only form)
 - `uv run upload_parquet.py` — upload that parquet to S3 (skips if the key already exists)
 - `uv run generate_cache.py` — re-run the default query against the parquet named in `version.json` → `public/default_query_cache.json`
 - `uv run deploy_data.py` — upload `version.json` + `default_query_cache.json` to S3 (no-cache) and invalidate them on CloudFront
@@ -69,7 +69,7 @@ stray SQLite DB the service ignores. Code changes don't auto-propagate — re-rs
 
 **Default query duplication**: the default query string exists in two places that must stay in sync — `src/sql.ts` (`defaultQuery`) and `generate_cache.py`. If you change one, change the other and regenerate `public/default_query_cache.json`.
 
-**Stable vs versioned parquet name**: all SQL refers to the stable logical name `imdb.parquet` (`PARQUET_NAME` in `src/sql.ts`), which is what the parquet URL is registered as in DuckDB — so queries saved in localStorage or shared via URL survive dataset updates. The versioned physical file (`PARQUET_FILE` in `src/sql.ts`, e.g. `imdb12-06-2026.parquet`) is used only as the fetch URL, which busts CDN/browser caches when the dataset changes. `migrateQuery` rewrites dated filenames in stored/shared queries from pre-stable-name versions. To update the dataset: run `imdb_extract.py`, change `PARQUET_FILE`, run `generate_cache.py`, then deploy (the extract script uploads the new parquet to S3 itself).
+**Stable vs versioned parquet name**: all SQL refers to the stable logical name `imdb.parquet` (`PARQUET_NAME` in `src/sql.ts`), which is what the parquet URL is registered as in DuckDB — so queries saved in localStorage or shared via URL survive dataset updates. The versioned physical file (e.g. `imdb06-10-2026-2118.parquet`) is discovered at runtime from `version.json` (`getVersionInfo` in `src/sql.ts`; `FALLBACK_PARQUET_FILE` only if that fetch fails) and used only as the fetch URL, which busts CDN/browser caches when the dataset changes. `migrateQuery` rewrites dated filenames in stored/shared queries from pre-stable-name versions. Dataset updates need no app change: the Airflow DAG builds, uploads and publishes `version.json` (manual equivalent: `imdb_extract.py`, `generate_cache.py`, `deploy_data.py`).
 
 **Two query-authoring UIs that share state via localStorage**:
 - An Ace SQL editor (`src/editor.tsx`); running with a text selection executes only the selection.
