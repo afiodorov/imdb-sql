@@ -66,7 +66,11 @@ def sort_by_votes(src: Path, dest: Path) -> None:
 
 def build() -> str:
     PUBLIC_DIR.mkdir(exist_ok=True)
-    date_str = datetime.now().strftime("%d-%m-%Y")
+    # Time-qualified so a same-day rebuild gets a fresh key: upload_parquet.py
+    # skips keys already on S3 (and overwriting one in place would let CDN edges
+    # and browsers mix byte ranges from two different files), so a date-only name
+    # meant a rerun silently kept serving the earlier build.
+    date_str = datetime.now().strftime("%d-%m-%Y-%H%M")
     dest = PUBLIC_DIR / f"imdb{date_str}.parquet"
 
     ratings = pl.scan_csv(DEST_DIR / "title.ratings.tsv", **CSV_OPTIONS)

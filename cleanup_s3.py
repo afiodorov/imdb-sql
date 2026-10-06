@@ -1,6 +1,6 @@
 """Delete superseded dated parquet files from S3, keeping the most recent few.
 
-Each dataset refresh uploads a new dated parquet (imdb<DD-MM-YYYY>.parquet) under
+Each dataset refresh uploads a new dated parquet (imdb<DD-MM-YYYY-HHMM>.parquet; older ones lack -HHMM) under
 a fresh key, so old ones accumulate forever otherwise — a real concern once the
 refresh runs more often than weekly. We keep KEEP newest files: the current one
 (named in version.json) plus a small grace buffer of prior versions, so any client
@@ -20,7 +20,7 @@ S3_BUCKET = "imdb-sql"
 PUBLIC_DIR = Path(__file__).parent / "public"
 KEEP = 2  # current + 1 previous (grace buffer for in-flight clients)
 
-PARQUET_RE = re.compile(r"^imdb\d{2}-\d{2}-\d{4}\.parquet$")
+PARQUET_RE = re.compile(r"^imdb\d{2}-\d{2}-\d{4}(-\d{4})?\.parquet$")
 
 
 def cleanup() -> None:

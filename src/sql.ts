@@ -39,7 +39,7 @@ export function getDatasetDate(v: VersionInfo): Date | null {
         const d = new Date(v.generated);
         if (!isNaN(d.getTime())) return d;
     }
-    const m = v.parquet.match(/imdb(\d{2})-(\d{2})-(\d{4})\.parquet/);
+    const m = v.parquet.match(/imdb(\d{2})-(\d{2})-(\d{4})(?:-\d{4})?\.parquet/);
     if (m) {
         const [, dd, mm, yyyy] = m;
         return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
@@ -49,7 +49,7 @@ export function getDatasetDate(v: VersionInfo): Date | null {
 
 // Rewrite queries saved before the stable name existed (dated filenames).
 export function migrateQuery(q: string | null): string | null {
-    return q && q.replace(/imdb\d{2}-\d{2}-\d{4}\.parquet/g, PARQUET_NAME);
+    return q && q.replace(/imdb\d{2}-\d{2}-\d{4}(?:-\d{4})?\.parquet/g, PARQUET_NAME);
 }
 
 export const defaultQuery = `SELECT * EXCLUDE (titleType, primaryTitle, language)
