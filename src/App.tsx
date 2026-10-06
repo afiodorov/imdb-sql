@@ -318,6 +318,7 @@ ${whereClause}
             <div className="footer">
                 <span className="copyright">All movie data © copyright <a href="https://www.imdb.com">IMDb</a></span>
                 {datasetLabel ? <span className="dataset-info">{datasetLabel}</span> : null}
+                <span className="dataset-info">For AI agents: MCP server at <a href="/llms.txt">https://imdb-sql.fiodorov.es/mcp</a></span>
             </div>
         </div >
     );

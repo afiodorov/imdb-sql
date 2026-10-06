@@ -79,7 +79,7 @@ Query state is also mirrored to the URL (`?query=`) and localStorage, so links a
 
 **Results**: MUI X DataGrid; the `titleId` column renders as a link to IMDb (`src/imdb.tsx`). Default ranking is a Bayesian average: `(numVotes * averageRating + 700000) / (numVotes + 100000)`.
 
-**MCP servers**: `mcp-server.js` and `mcp-server.py` are standalone stdio MCP servers exposing SQL queries over the same parquet file (found by glob in `public/`, queried as `imdb.parquet`); they are independent of the web app.
+**Remote MCP server** (`mcp_lambda/`): `https://imdb-sql.fiodorov.es/mcp`, stateless Streamable HTTP, no auth, tools `query_imdb` / `get_imdb_schema`. A Python Lambda (`imdb-sql-mcp`, eu-west-2) with DuckDB reading the same public parquet over HTTP range requests (found via `version.json`, so dataset refreshes need no redeploy). JSON-RPC is hand-rolled in `handler.py` rather than via the MCP SDK (whose ASGI session manager doesn't fit a Lambda invocation). Because it runs arbitrary SQL from the internet it is sandboxed: single SELECT/EXPLAIN only, `enable_external_access=false` with `allowed_paths` = just the live parquet URL, config locked, memory/rows/20s time capped. Deploy code with `./mcp_lambda/deploy.sh` (idempotent; bundles the httpfs extension matching the locked duckdb). CloudFront routing is one-time manual config: origin `imdb-sql-mcp-lambda` (the function URL) + cache behavior `/mcp` with Managed-CachingDisabled and Managed-AllViewerExceptHostHeader. The account's Lambda concurrency limit is 10, so no reserved concurrency can be set. `public/llms.txt` describes it for agents. `mcp-server.js` / `mcp-server.py` are older local stdio servers that need the parquet in `public/`.
 
 ## Styling
 

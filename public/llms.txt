@@ -1,0 +1,34 @@
+# IMDb SQL
+
+> SQL (DuckDB dialect) over IMDb's public dataset, refreshed daily: ~8M rows covering every rated title (movies, series, episodes, shorts, games). The website runs queries in the browser; agents can use the MCP server below.
+
+## MCP server
+
+- URL: https://imdb-sql.fiodorov.es/mcp
+- Transport: Streamable HTTP (stateless, JSON responses). No authentication.
+- Tools:
+  - `query_imdb(sql)`: run one read-only SELECT against `FROM 'imdb.parquet'`; returns `{columns, rows, rowCount, truncated}` (max 500 rows).
+  - `get_imdb_schema()`: columns, types, query tips, and which dataset build is live.
+
+Add it to Claude Code: `claude mcp add --transport http imdb-sql https://imdb-sql.fiodorov.es/mcp`. In Claude.ai or ChatGPT, add a custom connector with the URL above.
+
+## Data
+
+One row per title per regional/alternate title. Columns: titleId, title, region (NULL = original-title row), language, primaryTitle, titleType (movie, tvSeries, tvEpisode, ...), startYear, genres (comma-separated), averageRating, numVotes.
+
+- Add `region IS NULL` for ~one row per title.
+- Filter on `numVotes` first; rows are sorted by it, so it's the fastest filter.
+- "Best of" ranking used by the site: `ORDER BY (numVotes * averageRating + 700000) / (numVotes + 100000) DESC`.
+
+Example:
+
+    SELECT primaryTitle, startYear, averageRating, numVotes
+    FROM 'imdb.parquet'
+    WHERE region IS NULL AND titleType = 'movie' AND numVotes >= 50000
+    ORDER BY (numVotes * averageRating + 700000) / (numVotes + 100000) DESC
+    LIMIT 20
+
+## Links
+
+- Website: https://imdb-sql.fiodorov.es/
+- Source: https://github.com/afiodorov/imdb-sql
