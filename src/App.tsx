@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from 'react';
+import {DuckDBDataProtocol} from '@duckdb/duckdb-wasm';
 import {useDuckDB} from './duckdb/duckdbContext';
 import {DataGrid, GridColDef, GridCellParams, GridToolbar} from '@mui/x-data-grid';
 import {useSearchParams} from 'react-router-dom';
 import {defaultQuery, cacheQueryParts, getCachedSelectColumns, getCachedOrderByClause, getCachedLimitValue, migrateQuery, PARQUET_NAME, getParquetFile, getVersionInfo, getDatasetDate} from './sql';
 import {Editor} from './editor';
 import {ImdbLink} from './imdb';
-import {storeParquetInIndexedDB, getParquetFileFromIndexedDB, deleteOtherParquetFiles} from './cache';
+import {dropLegacyParquetCache} from './cache';
 import {QueryBuilder, formatQuery, RuleGroupType} from 'react-querybuilder';
 import {fields} from './fields';
 import {useLocalStorageSetter} from "./storage";
@@ -81,41 +82,22 @@ const App: React.FC = () => {
     const setBuildQueryAndStore = useLocalStorageSetter(setBuildQuery, 'buildQuery', true)
 
     // Returns whether the parquet is registered; the boolean matters because
-    // callers can't observe the parquetLoaded state update within the same call
+    // callers can't observe the parquetLoaded state update within the same call.
+    // The file is registered by URL, not downloaded: DuckDB reads only the footer
+    // and the column chunks / row groups a query needs via HTTP range requests.
     const loadParquetFile = async (): Promise<boolean> => {
         if (!db) return false;
         if (parquetLoaded) return true;
 
-        const parquetFile = await getParquetFile();
-
         try {
-            const parquetBlob: Blob = await getParquetFileFromIndexedDB(parquetFile);
-            const arrayBuffer: ArrayBuffer = await parquetBlob.arrayBuffer();
-            if (arrayBuffer.byteLength > 1000) {
-                await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(arrayBuffer));
-                setParquetLoaded(true);
-                return true
-            }
-        } catch {
-            // pass
-        }
-
-        try {
-            const parquetUrl = `/${parquetFile}`;
-            const response = await fetch(parquetUrl);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch Parquet file: ${response.statusText}`);
-            }
-            const parquetArrayBuffer = await response.arrayBuffer();
-            const parquetBlob: Blob = new Blob([parquetArrayBuffer], {type: 'application/octet-stream'});
-            await storeParquetInIndexedDB(parquetFile, parquetBlob);
-            await deleteOtherParquetFiles(parquetFile);
-
-            await db.registerFileBuffer(PARQUET_NAME, new Uint8Array(parquetArrayBuffer));
+            const parquetFile = await getParquetFile();
+            const parquetUrl = new URL(`/${parquetFile}`, window.location.origin).href;
+            await db.registerFileURL(PARQUET_NAME, parquetUrl, DuckDBDataProtocol.HTTP, false);
             setParquetLoaded(true);
             return true
         } catch (error) {
-            console.error('Error loading Parquet file:', error);
+            console.error('Error registering Parquet file:', error);
+            setError(`${error}`);
             return false
         }
     };
@@ -222,6 +204,10 @@ const App: React.FC = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [db]);
+
+    useEffect(() => {
+        dropLegacyParquetCache();
+    }, []);
 
     // Show which dataset is loaded so users know how fresh the data is.
     useEffect(() => {
